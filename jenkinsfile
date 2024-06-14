@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+    environment {
+        DOCKER_IMAGE = 'farouckloicyann/my-app'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/farouck98/project_groupe_dvp.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                script {
+                    docker.build("${DOCKER_IMAGE}:${env.BUILD_NUMBER}")
+                }
+            }
+        }
+        stage('Test') {
+            steps {
+                script {
+                    docker.image("${DOCKER_IMAGE}:${env.BUILD_NUMBER}").inside {
+                        sh 'pip install -r requirements.txt'
+                        sh 'pytest'
+                    }
+                }
+            }
+        }
+        stage('Push Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-credentials') {
+                        docker.image("${DOCKER_IMAGE}:${env.BUILD_NUMBER}").push()
+                    }
+                }
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    sh 'kubectl apply -f k8s/deployment.yaml'
+                    sh 'kubectl apply -f k8s/service.yaml'
+                }
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
