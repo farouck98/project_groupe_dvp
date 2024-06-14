@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: "farouck"
+      MYSQL_DATABASE: "users"
+    ports:
+      - "3307:3306"
+
+  web:
+    build: .
+    command: python app.py
+    volumes:
+      - .:/app
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    environment:
+      FLASK_ENV: development
+      DATABASE_URI: mysql+pymysql://root:farouck@db/users
